@@ -1,0 +1,49 @@
+trigger:
+  branches:
+    include:
+    - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+parameters:
+  - name: azure_subscription
+    type: string
+    default: "41f2f239-ca68-48bf-b2f0-dff8b108965a"
+    displayName: Azure Subscription
+
+  - name: acr_name
+    type: string
+    default: acrktk6lab
+    displayName: Azure Container Registry Name
+
+variables:
+  - name: k6_image
+    value: ${{ parameters.acr_name }}.azurecr.io/k6_test:latest
+variables:
+  - name: sample_app_image
+    value: ${{ parameters.acr_name }}.azurecr.io/sample_app:latest
+steps:
+
+  - task: Bash@3
+    displayName: 'Build Image'
+    inputs:
+      targetType: 'inline'
+      script: |
+        current_utc_date=`date --utc`
+        echo $current_utc_date
+
+        echo ----- BUILD IMAGE ------------
+        docker build -t ${{ variables.sample_app_image }} -f ./sample-app/dockerfile .
+        docker build -t ${{ variables.k6_image }} -f ./k6/dockerfile .
+  - task: AzureCLI@2
+    displayName: 'Push Image to ACR'
+    inputs:
+      azureSubscription: ${{ parameters.azure_subscription }}
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -e
+        az acr login --name ${{ parameters.acr_name }}
+        docker push ${{ variables.sample_app_image }}
+        docker push ${{ variables.k6_image }}
