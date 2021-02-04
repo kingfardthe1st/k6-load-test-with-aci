@@ -1,0 +1,26 @@
+apiVersion: 2019-12-01
+location: eastus
+name: perfTestk6Container
+properties:
+  restartPolicy: Never
+  imageRegistryCredentials:
+  - server: $ACR_SERVER
+    username: $REGISTRY_USERNAME
+    password: $REGISTRY_PASSWORD
+  containers:
+  - name: k6-perf-test-aci
+    properties:
+      image: $CONTAINER_IMAGE
+      resources:
+        requests:
+          cpu: 2
+          memoryInGb: 3.5
+      volumeMounts: 
+      - name: volume-mount
+        mountPath: $REPORT_DIR
+        readOnly: false
+      environmentVariables:
+        - name: 'REPORT_DIR'
+          value: '$REPORT_DIR'
+        - name: 'API_BASE_URL'
+          value: '$BASE_URL'
